@@ -18,7 +18,8 @@
 #define PICK 1
 #define RELEASE 0
 #define FPS 13
-#define PRECISION 3 //distanza a cui si stabilizza prima di effettuare il pick
+#define PRECISION 3 //distanza a cui si stabilizza prima di effettuare 
+il pick
 #define PICKHEIGHT 5
 #define FRAMEONOBJECT 5 //devo stare 5 frame sull' oggetto con una precisione PRECISION  prima di prenderlo
 #define FOLLOWVEL 30 //troppo veloce -> immagini sfocate
@@ -40,8 +41,10 @@ using namespace cv;
 int okframe=0;
 int scan_iteration=0;
 int attempt = 0;
-float offset[3] = {-8, -37, 9}; //offset della camera in coordinate della camera
-float cam_rotation = (((float)-90-0.6)*pi/180); //rotazione robot -> camera
+float offset[3] = {-8, -37, 9}; //offset della camera in coordinate 
+della camera
+float cam_rotation = (((float)-90-0.6)*pi/180); //rotazione robot -> 
+camera
 float scan_nodes[N_SCAN_NODES][3] = {
     {60, 0, 180},
     {60, 70, 180},
@@ -61,14 +64,22 @@ std::stack<int> auxStack;
 namespace {
 const char* about = "Basic marker detection";
 const char* keys  =
-        "{d        |       | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, DICT_4X4_250=2,"
-        "DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, DICT_5X5_250=6, DICT_5X5_1000=7, "
-        "DICT_6X6_50=8, DICT_6X6_100=9, DICT_6X6_250=10, DICT_6X6_1000=11, DICT_7X7_50=12,"
-        "DICT_7X7_100=13, DICT_7X7_250=14, DICT_7X7_1000=15, DICT_ARUCO_ORIGINAL = 16}"
-        "{v        |       | Input from video file, if ommited, input comes from camera }"
-        "{ci       | 0     | Camera id if input doesnt come from video (-v) }"
-        "{c        |       | Camera intrinsic parameters. Needed for camera pose }"
-        "{l        | 0.1   | Marker side lenght (in meters). Needed for correct scale in camera pose }"
+        "{d        |       | dictionary: DICT_4X4_50=0, DICT_4X4_100=1, 
+DICT_4X4_250=2,"
+        "DICT_4X4_1000=3, DICT_5X5_50=4, DICT_5X5_100=5, DICT_5X5_250=6, 
+DICT_5X5_1000=7, "
+        "DICT_6X6_50=8, DICT_6X6_100=9, DICT_6X6_250=10, 
+DICT_6X6_1000=11, DICT_7X7_50=12,"
+        "DICT_7X7_100=13, DICT_7X7_250=14, DICT_7X7_1000=15, 
+DICT_ARUCO_ORIGINAL = 16}"
+        "{v        |       | Input from video file, if ommited, input 
+comes from camera }"
+        "{ci       | 0     | Camera id if input doesnt come from video 
+(-v) }"
+        "{c        |       | Camera intrinsic parameters. Needed for 
+camera pose }"
+        "{l        | 0.1   | Marker side lenght (in meters). Needed for 
+correct scale in camera pose }"
         "{dp       |       | File of marker detector parameters }"
         "{s        |       | show image stream w/ axis }"
         "{r        |       | show rejected candidates too }"
@@ -77,8 +88,7 @@ const char* keys  =
         "{kder     | 0     | set derivative control constant}";
 }
 
-/**
- */
+
 static bool readCameraParameters(string filename, Mat &camMatrix, Mat &distCoeffs) {
     FileStorage fs(filename, FileStorage::READ);
     if(!fs.isOpened())
@@ -89,9 +99,6 @@ static bool readCameraParameters(string filename, Mat &camMatrix, Mat &distCoeff
 }
 
 
-
-/**
- */
 static bool readDetectorParameters(string filename, Ptr<aruco::DetectorParameters> &params) {
     FileStorage fs(filename, FileStorage::READ);
     if(!fs.isOpened())
@@ -218,20 +225,20 @@ int stringFromSerial(char* received, int  serial){
                 started=1;
             if(started){
                 received[i] = income;
-//	        printf("%c \n", income);
+//	            printf("%c \n", income);
                 if (income=='\n' || income =='\0' || income == '\r'){
                     received[i]='\0';
                     finito=1;
-//                    printf("finito di ricevere \n");
-		    break;
+//                  printf("finito di ricevere \n");
+		            break;
                 }
-                i++;
-                i=i%15;
-	    }
+            i++;
+            i=i%15;
+	        }
         }
 //	printf("ancora sono in serialstringecc !fin = %d\n",!finito);
     }
-//    printf("i: %d", i);
+//  printf("i: %d", i);
     return 0;
 }
 
@@ -248,7 +255,7 @@ int robotIsIdle(int serial){
 	askForIdle(serial);
 	while(!serialDataAvail(serial));
 	int rec = serialGetchar(serial);
-//	printf("ricevuto\n");
+//  printf("ricevuto\n");
 	int idle = rec-'0';
 //	printf("idle %d", idle);
     return(idle);
@@ -312,7 +319,10 @@ void robotPickRelease(int serial, float dist[], int action){
     waitForIdle(serial);
 }
 
-int robotFollow(int serial, float errvec[], float contrvec[], float kint, float kprop, float kder, float lastin[3][2], float lastout[], float Tcamp, int pick, float angle_now){
+//robotFollow handles the control function and the serial communication of the position
+//this function returns 1 if I finished a PICK - RELEASE movement, otherwise returns 0
+int robotFollow(int serial, float errvec[], float contrvec[], float kint, float kprop, 
+    float kder, float lastin[3][2], float lastout[], float Tcamp, int pick, float angle_now){
 	float dist_err = sqrt((errvec[0] * errvec[0]) + (errvec[1] * errvec[1]) + ((errvec[2]+Z_ONOBJECT) * (errvec[2]+Z_ONOBJECT)));
 	if(dist_err < PRECISION){
 		okframe++;
@@ -331,7 +341,8 @@ int robotFollow(int serial, float errvec[], float contrvec[], float kint, float 
 		okframe=0;
 	}
 	//printf("okframe %d\n",okframe);
-    controlFunction(errvec[0],errvec[1], errvec[2] + Z_ONOBJECT,contrvec, kint, kprop, kder, lastin, lastout, Tcamp); //implementa il controllo, in=errorvec out=controlvec
+    controlFunction(errvec[0],errvec[1], errvec[2] + Z_ONOBJECT,contrvec, kint, kprop, kder, lastin, lastout, Tcamp); 
+//implementa il controllo, in=errorvec out=controlvec
     //printf("controlvec %f %f %f\n", contrvec[0], contrvec[1], contrvec[2]);
     gcodeSendControlled(contrvec, serial, FOLLOWVEL);
     //waitForIdle(serial);
@@ -376,8 +387,8 @@ void fileWrite(double t_grab, double t_it, int frames, ofstream &log){
  */
 
  int analyzeFrame(int fd, Ptr<aruco::Dictionary> &dictionary, const Ptr<aruco::DetectorParameters> &detectorParams, 
-					float markerLength, Mat camMatrix, Mat distCoeffs, int* foundmarker, 
-						float errvec[], int showStream, vector<int>& ids, int searchedID, float *angle_now){
+					float markerLength, Mat camMatrix, Mat distCoeffs, int* foundmarker, float errvec[], int 
+                    showStream, vector<int>& ids, int searchedID, float *angle_now){
 	inputVideo.grab();
 	serialFlush(fd); //occhio a non metterla subito dopo un serial send o si mangia byte in uscita
 	Mat image, imageCopy;
@@ -390,16 +401,16 @@ void fileWrite(double t_grab, double t_it, int frames, ofstream &log){
 	vector< Vec3d > rvecs, tvecs;
 	aruco::detectMarkers(image, dictionary, corners, ids, detectorParams, rejected);
 	if(ids.size() > 0){
-		aruco::estimatePoseSingleMarkers(corners, markerLength, camMatrix, distCoeffs, rvecs,
-										 tvecs);
-//		printf("ho fatto estimatepose, ids size = %d\n", ids.size());
-		for (int i=0; i<ids.size(); i++){
-			if (ids[i]==searchedID){
-				*foundmarker=1;
-				indexID=i;
-			}
-		}
-	}
+		aruco::estimatePoseSingleMarkers(corners, markerLength, camMatrix, distCoeffs, rvecs,tvecs);
+//		printf("ho fatto estimatepose, ids size = %d\n", 
+        ids.size();
+    	for (int i=0; i<ids.size(); i++){
+    		if (ids[i]==searchedID){
+    			*foundmarker=1;
+    			indexID=i;
+    		}
+    	}
+    }
 //	 for(int i=0; i<tvecs.size(); i++){
 //	     	cout << "Traslation vector"<<i<<endl
 //	     	<< "size = "<<tvecs.size()<<endl
@@ -408,9 +419,8 @@ void fileWrite(double t_grab, double t_it, int frames, ofstream &log){
 //            	<< "z = "<<tvecs[i][2]<<endl ;
 //		 }
 	if(*foundmarker){
-				float camera_err [3] = {
-					tvecs[indexID][0], tvecs[indexID][1], tvecs[indexID][2]
-				};
+		float camera_err [3] = { tvecs[indexID][0], 
+            tvecs[indexID][1], tvecs[indexID][2] };
 		robotCoord(camera_err, errvec, *angle_now, offset, cam_rotation);
 		//printf("err rob coor : %f %f %f\n", errvec[0], errvec[1], errvec[2]);
 	}
@@ -419,9 +429,10 @@ void fileWrite(double t_grab, double t_it, int frames, ofstream &log){
 		image.copyTo(imageCopy);
 	if(ids.size() > 0 && showStream) {
 		aruco::drawDetectedMarkers(imageCopy, corners, ids);
-		for(unsigned int i = 0; i < ids.size(); i++)
-			aruco::drawAxis(imageCopy, camMatrix, distCoeffs, rvecs[i], tvecs[i],
-					markerLength * 0.5f);
+		for(unsigned int i = 0; i < ids.size(); i++) {
+			aruco::drawAxis(imageCopy, camMatrix, 
+                distCoeffs, rvecs[i], tvecs[i], markerLength * 0.5f);
+        }
 	}
 	char key = 0;
 	if(showStream){
@@ -429,12 +440,16 @@ void fileWrite(double t_grab, double t_it, int frames, ofstream &log){
 		key= (char)waitKey(1);
 	}
 }
-int robotControl(int serial, int inview, float errvec[], float contrvec[], float ki, float kp, float kd, float lastin[3][2], float lastout[], float Tcamp, int pick, float angle){
+int robotControl(int serial, int inview, float errvec[], float 
+contrvec[], float ki, float kp, float kd, float lastin[3][2], float 
+lastout[], float Tcamp, int pick, float angle){
+    //FINITE STATE MACHINE DEFINITION
     switch (status){
         case SCAN:
             if(inview){
                 status = FOLLOW;
-                robotFollow(serial, errvec, contrvec, ki, kp, kd, lastin, lastout, Tcamp, pick, angle);
+                robotFollow(serial, errvec, contrvec, ki, kp, kd, 
+                    lastin, lastout, Tcamp, pick, angle);
 				scan_iteration = 0;
             }
             else
@@ -444,11 +459,12 @@ int robotControl(int serial, int inview, float errvec[], float contrvec[], float
             if(!inview){
                 status=TRYFOLLOW;
                 robotTryFollow(serial, errvec, kp);
-		break;
+                break;
             }
             else
+                //if I see something I have to follow...
                 if(robotFollow(serial, errvec, contrvec, ki, kp, kd, lastin, lastout, Tcamp, pick, angle)){
-					printf("robotfollow ha tornato 1\n");
+					//printf("Pick - release movement completed\n");
 					for(int i=0; i<3; i++){
 						lastin[i][0] = 0;
 						lastin[i][1]=0;
@@ -456,9 +472,9 @@ int robotControl(int serial, int inview, float errvec[], float contrvec[], float
 					}
 					status=SCAN;
 					return(1);
-		}
+                }
 		else
-            		break;
+            break;
         case TRYFOLLOW:
             if(inview){
                 status = FOLLOW;
@@ -497,7 +513,8 @@ void updateIds(vector<int>& found, vector<int>& saved){
 			alreadyfound=0;
 		}
 }
-int hanoiPreparation(int serial, vector<int>& ids, vector<int>& saved_ids){
+int hanoiPreparation(int serial, vector<int>& ids, vector<int>& 
+saved_ids){
 	robotScan(serial);
 //	printf("sono in hanoipreparation\n");
 	if(ids.size())
@@ -611,11 +628,13 @@ int main(int argc, char *argv[]) {
     }
 
     Ptr<aruco::Dictionary> dictionary =
-        aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME(dictionaryId));
+        
+aruco::getPredefinedDictionary(aruco::PREDEFINED_DICTIONARY_NAME(dictionaryId));
 
     Mat camMatrix, distCoeffs;
     if(estimatePose) {
-        bool readOk = readCameraParameters(parser.get<string>("c"), camMatrix, distCoeffs);
+        bool readOk = readCameraParameters(parser.get<string>("c"), 
+camMatrix, distCoeffs);
         if(!readOk) {
             cerr << "Invalid camera file" << endl;
             return 0;
@@ -653,8 +672,11 @@ int main(int argc, char *argv[]) {
 	do{
 //		printf("in preparation\n");
 		double tick_tot = (double)getTickCount();
-		analyzeFrame(fd, dictionary, detectorParams, markerLength, camMatrix, distCoeffs, &foundmarker, errvec, showStream, ids, 0, &angle_now);
-		double currentTime_tot = ((double)getTickCount() - tick_tot) / getTickFrequency();
+		analyzeFrame(fd, dictionary, detectorParams, 
+            markerLength, camMatrix, distCoeffs, &foundmarker, errvec, showStream, 
+            ids, 0, &angle_now);
+		double currentTime_tot = ((double)getTickCount() - 
+            tick_tot) / getTickFrequency();
 		bufferClean(currentTime_tot);
 //		printf("hio finito analyzeframe\n");
 	}while(!hanoiPreparation(fd, ids, saved_ids));
@@ -710,37 +732,44 @@ int main(int argc, char *argv[]) {
 		printf("look for %d/n", startID);
 		do{
 			double tick_tot = (double)getTickCount();
-			analyzeFrame(fd, dictionary, detectorParams, markerLength, camMatrix, distCoeffs, &foundmarker, errvec, showStream, ids, startID, &angle_now);
+			analyzeFrame(fd, dictionary, detectorParams, markerLength, camMatrix, distCoeffs, 
+                &foundmarker, errvec, showStream, ids, startID, &angle_now);
 			double currentTime = ((double)getTickCount() - tick_tot) / getTickFrequency(); //da posizionare meglio
-			picked = robotControl(fd, foundmarker, errvec, contrvec, kint, kprop, kder, lastin, lastout, currentTime, PICK, angle_now);
+			picked = robotControl(fd, foundmarker, errvec, 
+                contrvec, kint, kprop, kder, lastin, lastout, currentTime, PICK, angle_now);
 			foundmarker=0;
 			double currentTime_tot = ((double)getTickCount() - tick_tot) / getTickFrequency();
 			bufferClean(currentTime_tot);
 			if(picked){
 				do{
-					analyzeFrame(fd, dictionary, detectorParams, markerLength, camMatrix, distCoeffs, &notReallyPicked, errvec, showStream, ids, startID, &angle_now); //se lo vedo ancora non l' ho preso
+					analyzeFrame(fd, dictionary, 
+                        detectorParams, markerLength, camMatrix, distCoeffs, &notReallyPicked, 
+                        errvec, showStream, ids, startID, &angle_now); //se lo vedo ancora non l' ho preso
 					printf("not really picked = %d",notReallyPicked);
 					if(notReallyPicked){
 						pickAttempts++;
 						robotCoord(offset, offst_rob, angle_now, offset, cam_rotation);
 						for (int i=0; i<3 ; i++){
-							errvec[i]-=offst_rob[i];
-							//printf("traslazione %d = %f\n", i, offst_rob[i]);
+                            errvec[i]-=offst_rob[i];
+//printf("traslazione %d = %f\n", i, offst_rob[i]);
 						}
-						errvec[2]-=(5*pickAttempts);
-						robotPickRelease(fd, errvec, PICK);
+                    errvec[2]-=(5*pickAttempts);
+					robotPickRelease(fd, errvec, PICK);
 					}
 					bufferClean(1000);
 				}while(notReallyPicked);
 				pickAttempts=0;
 			}
 		}while(!picked);
-		printf("look for %d\n", endID);
+		printf("Looking for %d ... \n", endID);
 		do{
 			double tick_tot = (double)getTickCount();
-			analyzeFrame(fd, dictionary, detectorParams, markerLength, camMatrix, distCoeffs, &foundmarker, errvec, showStream, ids, endID, &angle_now);
+			analyzeFrame(fd, dictionary, detectorParams, 
+                markerLength, camMatrix, distCoeffs, &foundmarker, errvec, showStream, 
+                ids, endID, &angle_now);
 			double currentTime = ((double)getTickCount() - tick_tot) / getTickFrequency(); //da posizionare meglio
-			released = robotControl(fd, foundmarker, errvec, contrvec, kint, kprop, kder, lastin, lastout, currentTime, RELEASE, angle_now);
+			released = robotControl(fd, foundmarker, errvec, 
+                contrvec, kint, kprop, kder, lastin, lastout, currentTime, RELEASE, angle_now);
 			foundmarker=0;
 			double currentTime_tot = ((double)getTickCount() - tick_tot) / getTickFrequency();
 			framesinbuf = min(floor(currentTime_tot*FPS), 5);
@@ -751,8 +780,9 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}while(!released);
-		printf("move completed \n");
+		printf("Move completed \n");
 	}
-    printf("sono uscito dal while\n");
+    printf("Exit from while...\n");
     return 0;
 }
+
